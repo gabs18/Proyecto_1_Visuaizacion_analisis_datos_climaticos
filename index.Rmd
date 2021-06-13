@@ -214,9 +214,9 @@ graph4 <- ggplot(monthly_data, aes(x = mes, y = suma_lluvia, group = 1)) +
 graph5 <- ggplot(monthly_data, aes(x = mes, y = prom_rad, group = 1)) + 
   geom_line(size = 1.07, colour = "#ffcc00") +
   geom_point(size = 2, colour = "#ffcc00") +
-  ggtitle('Irradación mensual promedio') +
+  ggtitle('Irradiación mensual promedio') +
   xlab('Mes') + 
-  ylab('Irradación solar (W / m2)') +
+  ylab('Irradiación solar (W / m2)') +
   theme_ipsum()
 
 
