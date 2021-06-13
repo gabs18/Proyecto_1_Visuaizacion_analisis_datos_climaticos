@@ -1,0 +1,306 @@
+---
+title: "Proyecto 1: Visualización y análisis de datos climáticos"
+subtitle : "Curso: Procesamiento de datos geográficos (GF0604)"
+author: "Estudiante: Gabriela Becerra (C01067)"
+output: 
+  html_document: 
+    fig_width: 15
+    fig_height: 10
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+<br> 
+<br> 
+
+#### Introducción
+Este proyecto consiste en analizar y visualizar series temporales de datos climáticos que típicamente se miden con una estación meteorológica automática. En efecto, se usan los datos de la estación Liberia, Guanacaste con registros diarios. La estación cuenta con mediciones para las variables: **temperatura, humedad relativa, velocidad de viento, irradiación, lluvia y la evapotranspiración estimada**. Los registros encuentran en el archivo “liberia_datos climáticos.csv”. Antes de manipular los datos en RStudio, se cambió el tipo de separación decimal en el archivo csv de coma a punto, puesto que este detalle iba a perjudicar los cálculos.
+
+<br>   
+
+### Pasos preliminares: carga de paquetes
+
+Se cargan estas bibliotecas:
+```{r libraries, message=FALSE}
+library(dplyr)
+library(ggplot2)
+library(hrbrthemes)
+library(grid)
+library(gridExtra)
+library(scales)
+```
+<br>   
+
+### 1. Creación de la variable data
+Primero, se asocian los datos climáticos del archivo a un objeto de R que se llama data.
+También, se incluye el tipo de separación, por punto y coma y se buscan posibles celdas vacías.
+Luego, se visualizan los primeros valores.
+``` {r csv}
+data <- read.csv(file = "liberia_datos_climaticos.csv", sep = ";", na.strings = "")
+data <- na.omit(data)
+head(data)
+```
+<br>
+
+### 2. Limpiar celdas vacías (NA)
+Con la función `complete.cases()` se imprime un vector lógico que indica y completa las celdas vacías. 
+``` {r data NA}
+data[!complete.cases(data),] 
+```
+<br>
+
+### 3. Cambio de nombre de las columnas para más facilidad
+Para mayor facilidad en el manejo de las variables se cambian sus nombres:
+``` {r names}
+names(data) <- c("Fecha", "Temperatura", "Humedad", "VelocidadViento", "Lluvia", "Irradiacion", "Evapotranspiracion")
+```
+<br>
+
+### 4. Cambiar los datos de tipo numérico y fecha y verificación con `class()`
+Con las funciones `as.numeric` y `as.Date` se cambian el tipo de dato. Luego, se verifica.
+```{r message=FALSE} 
+data$Temperatura <- as.numeric(data$Temperatura)
+data$Fecha <- as.Date(data$Fecha, "%d/%m/%Y")
+class(data$Fecha)
+```
+
+<br>
+
+### 5. Histogramas de los datos climáticos en la estación de Liberia entre 2015-2019
+En este paso se grafican los histogramas para cada variable con la función `ggplot` con la opción `geom_histogram` en que cual se toma el data.frame **data** como referencia. Luego, en el `aes` de _aesthetic_ en inglés, se escoge el dato climático: _temperatura, humedad, velocidad del viento, precipitación, irradiación solar y evapotranspiración._ Cabe resaltar que para cada histograma se utilizan las unidades adecuadas. Asimismo, se escogen colores usando los códigos hex. Finalmente, para que todos los histogramas queden distribuidos en seis paneles, se emplea la función `grid_arrange` donde se agrega un título principal.
+
+``` {r histogramas, warning = FALSE}
+hist1 <- ggplot(data) +
+  geom_histogram(
+    aes(x = Temperatura),
+    binwidth = 1,
+    color = "black",
+    fill = "#cc3300"
+  ) +
+  ggtitle("Temperatura") +
+  xlab("Temperatura (°C, Celsius)") +
+  ylab("Frecuencia") +
+  theme_ipsum()
+
+
+hist2 <- ggplot(data) +
+  geom_histogram(
+    aes(x = Humedad),
+    binwidth = 1,
+    color = "black",
+    fill = "#339900"
+  ) +
+  ggtitle("Humedad relativa") +
+  xlab("Huemdad relativa (%)") +
+  ylab("Frecuencia") +
+  theme_ipsum()
+
+hist3 <-  ggplot(data) +
+  geom_histogram(
+    aes(x = VelocidadViento),
+    binwidth = 1,
+    color = "black",
+    fill = "#6666cc"
+  ) +
+  ggtitle("Velocidad del viento") +
+  xlab("Velocidad (m/s)") +
+  ylab("Frecuencia") +
+  theme_ipsum()
+
+hist4 <-  ggplot(data) +
+  geom_histogram(
+    aes(x = Lluvia),
+    binwidth = 10,
+    color = "black",
+    fill = "#0099cc"
+  ) +
+  ggtitle("Precipitación") +
+  xlab("Precipitación (mm)") +
+  ylab("Frecuencia") +
+  theme_ipsum() 
+
+hist5 <-  ggplot(data) +
+  geom_histogram(
+    aes(x = Irradiacion),
+    binwidth = 10,
+    color = "black",
+    fill = "#ffcc00"
+  ) +
+  ggtitle("Irradiación solar") +
+  xlab("Irradación solar (W / m2)") +
+  ylab("Frecuencia") +
+  theme_ipsum()
+
+hist6 <-  ggplot(data) +
+  geom_histogram(
+    aes(x = Evapotranspiracion),
+    binwidth = 1,
+    color = "black",
+    fill = "#006699"
+  ) +
+  ggtitle("Evapotranspiración") +
+  xlab("Evapotranspiración (mm)") +
+  ylab("Frecuencia") +
+  theme_ipsum()
+
+# grid.arrange ordena todos los paneles
+grid.arrange(hist1, hist2, hist3, hist4, hist5, hist6,
+             top = textGrob(
+               gp = gpar(fontface = 2, fontsize = 23),
+               "Histogramas con los datos climáticos de la estación de Liberia entre 2015 y 2019"))
+```
+
+<br>
+
+
+### 6. Cálculos de promedios y de sumas
+Seguidamente, se procede a **promediar** las series de _temperatura, humedad relativa, velocidad de viento, irradiación_ a valores mensuales. Por otra parte, se **suman** la _lluvia y evapotranspiración_ a valores mensuales. De este modo, se obtienen seis nuevos valores de promedios y de acumulados mensuales.
+En concreto, se utiliza las funciones del paquete dplyr para generar un nuevo data.frame con estos cálculos. Primero, se seleccionan las columnas (fecha, temperatura, velocidad viento, humedad, lluvia, irriadiación y evapotranspiración) del data frame original **data** y con un pipe (`%>%`) se une a la suiguiente. Después, con `mutate()` se crea una variable y establecemos el formato de fecha. En tercer lugar, con `group_by()` se escoge que se van a organizar por mes. Finalmente, con la función `summarise()` se realizan los cálculos mediante `mean()`, para los **promedios mensuales** y mediante `sum` para los **valores acumulados mensuales.**
+
+
+``` {r }
+monthly_data <- data %>%
+  select(Fecha, Temperatura, VelocidadViento, Humedad, Lluvia, Irradiacion, Evapotranspiracion) %>%
+  mutate (Fecha = as.Date(Fecha, format = "%d/%m/%Y")) %>%
+  group_by(mes = format(Fecha, "%m")) %>%
+  summarise(prom_temp = mean (Temperatura),
+            prom_hum = mean (Humedad),
+            prom_vel = mean (VelocidadViento),
+            suma_lluvia = sum (Lluvia),
+            prom_rad = mean (Irradiacion),
+            suma_evapo = sum (Evapotranspiracion))
+```
+
+<br>
+
+
+### 7. Graficación de datos mensuales de los datos climáticos en la estación de Liberia entre 2015-2019
+En este paso se grafican los gráficos de líneas para cada variable con la función `ggplot` con la opción `geom_line` y `geom_point` para agregar los puntos. Luego, se realizan los mismos pasos en el paso 5 con la particularidad de graficar los valores que se calcularon en el paso 6: `prom_temp`, `prom_hum`, `prom_vel`, `prom_vel`, `suma_lluvia`, `prom_rad`, `suma_evapo`. 
+
+``` {r, warning = FALSE}
+graph1 <- ggplot(monthly_data, aes(x = mes, y = prom_temp, group = 1)) + 
+  geom_line(size = 1.07, colour = "#cc3300") +
+  geom_point(size = 2, colour = "#cc3300") +
+  ggtitle('Temperatura mensual promedio') +
+  xlab('Mes') + 
+  ylab('°C, grados Celsius') +
+  theme_ipsum()
+
+graph2 <- ggplot(monthly_data, aes(x = mes, y = prom_hum, group = 1)) + 
+  geom_line(size = 1.07, colour = "#339900") +
+  geom_point(size = 2, colour = "#339900") +
+  ggtitle('Humedad relativa mensual promedio') +
+  xlab('Mes') + 
+  ylab('% de humedad relativa') +
+  theme_ipsum()
+
+graph3 <- ggplot(monthly_data, aes(x = mes, y = prom_vel, group = 1)) + 
+  geom_line(size = 1.07, colour = "#6666cc") +
+  geom_point(size = 2, colour = "#6666cc") +
+  ggtitle('Velocidad del viento mensual promedio') +
+  xlab('Mes') + 
+  ylab('m/s') +
+  theme_ipsum()
+
+graph4 <- ggplot(monthly_data, aes(x = mes, y = suma_lluvia, group = 1)) + 
+  geom_line(size = 1.07, colour = "#0099cc") +
+  geom_point(size = 2, colour = "#0099cc") +
+  ggtitle('Precipitación mensual acumulada') +
+  xlab('Mes') + 
+  ylab('Precipitación acumulada (mm)') +
+  theme_ipsum()
+
+graph5 <- ggplot(monthly_data, aes(x = mes, y = prom_rad, group = 1)) + 
+  geom_line(size = 1.07, colour = "#ffcc00") +
+  geom_point(size = 2, colour = "#ffcc00") +
+  ggtitle('Irradación mensual promedio') +
+  xlab('Mes') + 
+  ylab('Irradación solar (W / m2)') +
+  theme_ipsum()
+
+
+graph6 <- ggplot(monthly_data, aes(x = mes, y = suma_evapo, group = 1)) + 
+  geom_line(size = 1.07, colour = "#006699") +
+  geom_point(size = 2, colour = "#006699") +
+  ggtitle('Evapotranspiración mensual acumulada') +
+  xlab('Mes') + 
+  ylab('Evapotranspiración (mm)') +
+  theme_ipsum()
+
+# grid.arrange ordena todos los paneles
+grid.arrange(graph1, graph2, graph3, graph4, graph5, graph6,
+             top = textGrob(
+               gp = gpar(fontface = 2, fontsize = 23),
+               "Gráficos lineales con los datos climáticos de la estación de Liberia entre 2015 y 2019"))
+```
+
+<br>
+
+### 8. Gráficos de dispersión x-y para relacionar las variables entre si
+En este último paso se relacionan las variables del data.frame **data** entre si para mostrar posibles correlaciones entre los datos climáticos. Por ejemplo, en el primero se relaciona la temperatura y la irridiación, la cual podría mostrar la potencia de los rayos ultravioleta. Sin embargo, en este proyecto no se explican las correlaciones, su interpretación es meramente intuitiva y sin ningún apoyo teórico. 
+
+``` {r, warning = FALSE}
+# 1. Temperatura e irradación: ¿potencia de los rayos ultravioleta?
+scatter1 <- ggplot(data, aes(x = Temperatura, group = 1)) + 
+  geom_point(aes(y = Irradiacion), colour = "#cc3300") +
+  ggtitle('Temperatura en función de la irradiación') +
+  xlab('Temperatura (°C)') + 
+  ylab('Irradiación solar (W / m2)') +
+  theme_ipsum()
+
+
+# 2. Temperatura y humedad relativa: ¿clima tropical?
+scatter2 <- ggplot(data, aes(x = Temperatura, group = 1)) + 
+  geom_point(aes(y = Humedad), colour = "#339900") +
+  ggtitle('Temperatura en función de la humedad relativa') +
+  xlab('Temperatura (°C)') + 
+  ylab('Humedad relativa (%)') +
+  theme_ipsum()
+
+
+# 3. Humedad relativa y lluvia: ¿cuánta lluvia se queda en el ambiente?
+scatter3 <- ggplot(data, aes(x = Humedad, group = 1)) + 
+  geom_point(aes(y = Lluvia), colour = "#0099cc") +
+  ggtitle('Humedad en función de la lluvia') +
+  xlab('Temperatura (°C)') + 
+  ylab('Precipitación (mm)') +
+  theme_ipsum()
+
+
+# 4. Humedad relativa y evapotranspiración: ¿cuánta humedad se evotranspira?
+scatter4 <- ggplot(data, aes(x = Humedad, group = 1)) + 
+  geom_point(aes(y = Evapotranspiracion), colour = "#006699") +
+  ggtitle('Humedad relativa en función de la evapotranspiración') +
+  xlab('Humedad relativa (%)') + 
+  ylab('Evapotranspiración (mm)') +
+  theme_ipsum()
+
+
+# 5. Evapotranspiración y velocidad del viento: ¿qué tan rápido se evapotranspira el vapor?
+scatter5 <- ggplot(data, aes(x = Evapotranspiracion, group = 1)) + 
+  geom_point(aes(y = VelocidadViento), colour = "#6666cc") +
+  ggtitle('Evapotranspiración en función de la velocidad del viento') +
+  xlab('Evapotranspiración (mm)') + 
+  ylab('Velocidad del viento (m/s)') +
+  theme_ipsum()
+
+
+# 6. Evapotranspiración e irradación: ¿cuál es el efecto del sol en la evapotranspiración?
+scatter6 <- ggplot(data, aes(x = Evapotranspiracion, group = 1)) + 
+  geom_point(aes(y = Irradiacion), colour = "#ffcc00") +
+  ggtitle('Evapotranspiración en función de la irradiación') +
+  xlab('Evapotranspiración (mm)') + 
+  ylab('Irradiación solar (W / m2)') +
+  theme_ipsum()
+
+
+# grid.arrange ordena todos los paneles
+grid.arrange(scatter1, scatter2, scatter3, scatter4, scatter5, scatter6,
+             top = textGrob(
+               gp = gpar(fontface = 2, fontsize = 23),
+               "Gráficos de dispersión con los datos climáticos de la estación de Liberia entre 2015 y 2019"))
+```
+
+  
+  
